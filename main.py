@@ -105,8 +105,12 @@ def main():
         
         # This will run indefinitely until Ctrl+C
         # The scheduler handles background jobs automatically
-        while True:
-            signal.pause()  # Wait for signals
+        import time
+        try:
+            while True:
+                time.sleep(1)  # Keep the main thread alive for the scheduler
+        except KeyboardInterrupt:
+            pass
             
     except KeyboardInterrupt:
         # Caught by signal handler above
