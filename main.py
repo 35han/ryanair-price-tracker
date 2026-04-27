@@ -9,6 +9,7 @@ import sys
 from datetime import datetime
 from scheduler import start_bot, stop_bot, get_scheduler
 from config import DEPARTURE_AIRPORT, ARRIVAL_AIRPORT, EMAIL_PRICE_THRESHOLDS, CHECK_INTERVAL_HOURS
+from database import create_database
 
 # Configure logging
 logging.basicConfig(
@@ -79,6 +80,11 @@ def signal_handler(sig, frame):
 
 def main():
     """Main function - entry point"""
+    
+    # Initialize database first
+    logger.info("Initializing database...")
+    create_database()
+    logger.info("✅ Database initialized")
     
     # Show banner
     show_banner()
