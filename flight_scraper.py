@@ -51,9 +51,15 @@ class FlightPriceScraper:
         if not departure_date:
             departure_date = datetime.now() + timedelta(days=1)
         
+        # Convert string date to datetime if needed
+        if isinstance(departure_date, str):
+            departure_date = datetime.strptime(departure_date, '%Y-%m-%d')
+        
+        date_str = departure_date.strftime('%Y-%m-%d') if hasattr(departure_date, 'strftime') else str(departure_date)
+        
         logger.info(f"\n{'='*60}")
         logger.info(f"🚀 Starting price check for {DEPARTURE_AIRPORT} → {ARRIVAL_AIRPORT}")
-        logger.info(f"Date: {departure_date.strftime('%Y-%m-%d')}")
+        logger.info(f"Date: {date_str}")
         logger.info(f"{'='*60}")
         
         result = None
