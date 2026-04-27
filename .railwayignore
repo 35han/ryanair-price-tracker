@@ -1,0 +1,10 @@
+# Railway will ignore these files
+*.pyc
+__pycache__/
+.git/
+venv/
+.env.example
+PHASE*.md
+README.md
+test_*.py
+exports/

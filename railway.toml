@@ -1,0 +1,6 @@
+[build]
+builder = "dockerfile"
+
+[deploy]
+# Install Playwright browsers on deployment
+startCommand = "playwright install chromium && python main.py"
