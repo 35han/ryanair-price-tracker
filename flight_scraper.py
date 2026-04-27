@@ -20,6 +20,13 @@ except:
     logger.warning("API scraper not available")
 
 try:
+    from scraper_alternative import RyanairAlternativeScraper
+    alt_scraper_available = True
+except:
+    alt_scraper_available = False
+    logger.warning("Alternative scraper not available")
+
+try:
     from scraper import RyanairScraper
     selenium_scraper_available = True
 except:
@@ -33,10 +40,13 @@ class FlightPriceScraper:
     def __init__(self):
         self.last_price = None
         self.api_scraper = None
+        self.alt_scraper = None
         self.selenium_scraper = None
         
         if api_scraper_available:
             self.api_scraper = RyanairAPIScraperV2()
+        if alt_scraper_available:
+            self.alt_scraper = RyanairAlternativeScraper()
         if selenium_scraper_available:
             self.selenium_scraper = RyanairScraper()
     
@@ -74,6 +84,17 @@ class FlightPriceScraper:
                     return result
             except Exception as e:
                 logger.warning(f"⚠️ API method failed: {e}")
+        
+        # Try alternative scraper (different endpoints)
+        if self.alt_scraper:
+            logger.info("\n📡 Attempting alternative API method...")
+            try:
+                result = self.alt_scraper.scrape_price(departure_date)
+                if result:
+                    logger.info("✅ Alternative method succeeded!")
+                    return result
+            except Exception as e:
+                logger.warning(f"⚠️ Alternative method failed: {e}")
         
         # Fallback to Selenium (more reliable but slower)
         if self.selenium_scraper:
