@@ -26,8 +26,8 @@ class AlertHandler:
     def check_and_alert(self, current_price, departure_date=None):
         """
         Check prices and send alerts:
-        - EMAIL: Only when price crosses thresholds (€40, €35, €30)
-        - TELEGRAM: Every hour with current price
+        - EMAIL: ALWAYS send price report + threshold alerts
+        - TELEGRAM: Every check with current price
         
         Args:
             current_price: The current lowest price found
@@ -60,8 +60,30 @@ class AlertHandler:
             "email_thresholds": self.email_thresholds,
             "telegram_update": False,
             "email_alerts_sent": [],
+            "price_report_sent": False,
             "average_price": average
         }
+        
+        # ============ PRICE REPORT EMAIL (ALWAYS SEND) ============
+        logger.info(f"📧 Sending price report email...")
+        
+        if self.email_notifier.validate_credentials():
+            report_sent = self.email_notifier.send_price_report(
+                departure=DEPARTURE_AIRPORT,
+                arrival=ARRIVAL_AIRPORT,
+                price=current_price,
+                average_price=average,
+                date=departure_date
+            )
+            if report_sent:
+                result["price_report_sent"] = True
+                logger.info(f"✅ Price report email sent")
+                try:
+                    insert_alert(current_price, "email (price report)")
+                except Exception as e:
+                    logger.error(f"Error recording alert: {e}")
+        else:
+            logger.warning("⚠️ Email not configured")
         
         # ============ EMAIL ALERTS (Price threshold based) ============
         email_alerts_sent = []

@@ -173,6 +173,71 @@ Checked at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         """
         
         return self.send_email(EMAIL_RECIPIENT, subject, html_body, text_body)
+    
+    def send_price_report(self, departure, arrival, price, average_price, date):
+        """
+        Send a regular price report email (sent with every check)
+        
+        Args:
+            departure: Departure airport code
+            arrival: Arrival airport code
+            price: Current lowest price found
+            average_price: Average price from history
+            date: Flight date
+        """
+        
+        subject = f"📊 Price Update: {departure} → {arrival} at €{price:.2f}"
+        
+        # Calculate difference from average
+        change = price - average_price
+        change_percent = (change / average_price * 100) if average_price else 0
+        trend = "📉 Lower" if change < 0 else "📈 Higher" if change > 0 else "→ Same"
+        
+        html_body = f"""
+        <html>
+            <body style="font-family: Arial, sans-serif; color: #333;">
+                <h2 style="color: #3498db;">📊 Price Update Report</h2>
+                
+                <div style="background-color: #ecf0f1; padding: 20px; border-radius: 5px; margin: 20px 0;">
+                    <h3>Current Prices:</h3>
+                    <p><strong>Route:</strong> {departure} → {arrival}</p>
+                    <p><strong>Date:</strong> {date}</p>
+                    <p><strong>Lowest Price Found:</strong> <span style="font-size: 28px; color: #2ecc71; font-weight: bold;">€{price:.2f}</span></p>
+                    <p><strong>Average Price:</strong> €{average_price:.2f}</p>
+                    <p><strong>Price Trend:</strong> {trend} {change:+.2f}€ ({change_percent:+.1f}%)</p>
+                </div>
+                
+                <div style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0;">
+                    <p style="margin: 0;"><strong>💡 Action:</strong> Check Ryanair.com to compare current prices and book if interested.</p>
+                </div>
+                
+                <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+                
+                <p style="color: #999; font-size: 12px;">
+                    Sent by Ryanair Price Tracker Bot<br>
+                    Regular price update check at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+                </p>
+            </body>
+        </html>
+        """
+        
+        text_body = f"""
+📊 PRICE UPDATE REPORT
+
+Route: {departure} → {arrival}
+Date: {date}
+
+Current Price: €{price:.2f}
+Average Price: €{average_price:.2f}
+Trend: {trend} {change:+.2f}€ ({change_percent:+.1f}%)
+
+Check Ryanair.com for more details and to book if interested.
+
+Sent by Ryanair Price Tracker Bot
+Checked at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+        """
+        
+        return self.send_email(EMAIL_RECIPIENT, subject, html_body, text_body)
 
 
 # Test function
