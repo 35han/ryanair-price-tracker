@@ -4,6 +4,7 @@ Handles hourly price checks and other background jobs
 """
 
 import logging
+import threading
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from datetime import datetime, timedelta
@@ -23,6 +24,7 @@ class BotScheduler:
         self.scraper = FlightPriceScraper()
         self.alert_handler = AlertHandler()
         self.job_id = None
+        self.telegram_handler_thread = None
     
     def price_check_job(self):
         """
@@ -124,8 +126,28 @@ class BotScheduler:
         # Start the scheduler
         self.scheduler.start()
         logger.info("✅ Scheduler started successfully")
+        
+        # Start Telegram bot handler in separate thread
+        logger.info("\n🤖 Starting Telegram bot handler...")
+        self.start_telegram_handler()
+        
         logger.info("\n💡 Tip: Bot will continue running in the background")
         logger.info("💡 Tip: Use Ctrl+C to stop the bot\n")
+    
+    def start_telegram_handler(self):
+        """Start Telegram bot handler in a separate thread"""
+        try:
+            from telegram_bot_handler import start_telegram_bot_handler
+            
+            self.telegram_handler_thread = threading.Thread(
+                target=start_telegram_bot_handler,
+                daemon=False
+            )
+            self.telegram_handler_thread.start()
+            logger.info("✅ Telegram bot handler started")
+        except Exception as e:
+            logger.error(f"❌ Failed to start Telegram handler: {e}")
+
     
     def stop(self):
         """Stop the scheduler"""
