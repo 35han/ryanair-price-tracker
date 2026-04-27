@@ -1,0 +1,172 @@
+"""
+Simple combined scraper that tries multiple methods
+Uses Selenium for reliable scraping with browser automation
+"""
+
+import logging
+from datetime import datetime, timedelta
+from config import DEPARTURE_AIRPORT, ARRIVAL_AIRPORT
+from database import insert_price, insert_price_check
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Try importing scrapers
+try:
+    from scraper_api import RyanairAPIScraperV2
+    api_scraper_available = True
+except:
+    api_scraper_available = False
+    logger.warning("API scraper not available")
+
+try:
+    from scraper import RyanairScraper
+    selenium_scraper_available = True
+except:
+    selenium_scraper_available = False
+    logger.warning("Selenium scraper not available")
+
+
+class FlightPriceScraper:
+    """Main scraper that uses the most reliable method available"""
+    
+    def __init__(self):
+        self.last_price = None
+        self.api_scraper = None
+        self.selenium_scraper = None
+        
+        if api_scraper_available:
+            self.api_scraper = RyanairAPIScraperV2()
+        if selenium_scraper_available:
+            self.selenium_scraper = RyanairScraper()
+    
+    def scrape(self, departure_date=None):
+        """
+        Try to scrape flight prices using available methods
+        
+        Returns:
+            dict with flight data or None on failure
+        """
+        
+        if not departure_date:
+            departure_date = datetime.now() + timedelta(days=1)
+        
+        logger.info(f"\n{'='*60}")
+        logger.info(f"🚀 Starting price check for {DEPARTURE_AIRPORT} → {ARRIVAL_AIRPORT}")
+        logger.info(f"Date: {departure_date.strftime('%Y-%m-%d')}")
+        logger.info(f"{'='*60}")
+        
+        result = None
+        
+        # Try API method first (faster, no browser needed)
+        if self.api_scraper:
+            logger.info("\n📡 Attempting API method...")
+            try:
+                result = self.api_scraper.scrape_price(departure_date)
+                if result:
+                    logger.info("✅ API method succeeded!")
+                    return result
+            except Exception as e:
+                logger.warning(f"⚠️ API method failed: {e}")
+        
+        # Fallback to Selenium (more reliable but slower)
+        if self.selenium_scraper:
+            logger.info("\n🌐 Attempting Selenium browser method...")
+            try:
+                result = self.selenium_scraper.scrape_price(departure_date)
+                if result:
+                    logger.info("✅ Selenium method succeeded!")
+                    return result
+            except Exception as e:
+                logger.warning(f"⚠️ Selenium method failed: {e}")
+        
+        logger.error("❌ All scraping methods failed!")
+        return None
+    
+    def scrape_and_store(self, departure_date=None):
+        """
+        Scrape prices and automatically store in database
+        
+        Returns:
+            dict with results
+        """
+        result = self.scrape(departure_date)
+        
+        if result and "flights" in result:
+            try:
+                # Store lowest price in database
+                lowest_price = result.get("lowest_price")
+                url = f"https://www.ryanair.com/en/{result['departure']}/{result['arrival']}"
+                
+                insert_price(
+                    departure=result["departure"],
+                    arrival=result["arrival"],
+                    price=lowest_price,
+                    departure_date=result["date"],
+                    url=url
+                )
+                
+                insert_price_check(
+                    lowest_price=lowest_price,
+                    status="success"
+                )
+                
+                logger.info(f"✅ Stored price: €{lowest_price:.2f}")
+                
+                return {
+                    "success": True,
+                    "data": result,
+                    "stored": True
+                }
+            except Exception as e:
+                logger.error(f"Error storing in database: {e}")
+                return {
+                    "success": True,
+                    "data": result,
+                    "stored": False
+                }
+        else:
+            # Store failed attempt
+            try:
+                insert_price_check(
+                    lowest_price=None,
+                    status="error",
+                    error_message="Scraping failed - no flights found"
+                )
+            except:
+                pass
+            
+            return {
+                "success": False,
+                "data": None,
+                "stored": False
+            }
+
+
+# Test scraper
+if __name__ == "__main__":
+    logger.info("Testing combined flight price scraper...")
+    
+    scraper = FlightPriceScraper()
+    
+    # Scrape for tomorrow
+    tomorrow = datetime.now() + timedelta(days=1)
+    result = scraper.scrape_and_store(tomorrow)
+    
+    if result["success"]:
+        data = result["data"]
+        print(f"\n✅ Success! Found flights:")
+        print(f"   Route: {data['departure']} → {data['arrival']}")
+        print(f"   Date: {data['date']}")
+        print(f"   Lowest price: €{data['lowest_price']:.2f}")
+        print(f"   Highest price: €{data.get('highest_price', 'N/A')}")
+        print(f"   Average price: €{data.get('average_price', 'N/A')}")
+        print(f"   Flights found: {len(data['flights'])}")
+        print(f"   Stored in database: {result['stored']}")
+        
+        if data['flights']:
+            print(f"\n   First 3 flights:")
+            for i, flight in enumerate(data['flights'][:3]):
+                print(f"     {i+1}. €{flight['price']:.2f} - {flight.get('departure_time', 'N/A')}")
+    else:
+        print(f"\n❌ Failed to scrape prices")

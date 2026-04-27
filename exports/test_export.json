@@ -1,0 +1,106 @@
+{
+  "export_info": {
+    "exported_at": "2026-04-27T14:33:42.892593",
+    "route": "TLL → NUE",
+    "days_exported": 30,
+    "records": 9
+  },
+  "statistics": {
+    "lowest_price": 31.025274561171926,
+    "highest_price": 48.0,
+    "average_price": 37.4051961409549,
+    "total_checks": 9
+  },
+  "prices": [
+    {
+      "id": 9,
+      "departure_airport": "TLL",
+      "arrival_airport": "NUE",
+      "price": 32.62121774708942,
+      "currency": "EUR",
+      "departure_date": "2026-04-28",
+      "checked_at": "2026-04-27 11:31:16",
+      "ryanair_url": null
+    },
+    {
+      "id": 8,
+      "departure_airport": "TLL",
+      "arrival_airport": "NUE",
+      "price": 33.37877064376049,
+      "currency": "EUR",
+      "departure_date": "2026-04-28",
+      "checked_at": "2026-04-27 11:31:13",
+      "ryanair_url": null
+    },
+    {
+      "id": 7,
+      "departure_airport": "TLL",
+      "arrival_airport": "NUE",
+      "price": 38.1529912509579,
+      "currency": "EUR",
+      "departure_date": "2026-04-28",
+      "checked_at": "2026-04-27 11:30:44",
+      "ryanair_url": null
+    },
+    {
+      "id": 4,
+      "departure_airport": "TLL",
+      "arrival_airport": "NUE",
+      "price": 34.275009810222684,
+      "currency": "EUR",
+      "departure_date": "2026-04-28",
+      "checked_at": "2026-04-27 11:23:56",
+      "ryanair_url": null
+    },
+    {
+      "id": 5,
+      "departure_airport": "TLL",
+      "arrival_airport": "NUE",
+      "price": 31.393501255391673,
+      "currency": "EUR",
+      "departure_date": "2026-04-28",
+      "checked_at": "2026-04-27 11:23:56",
+      "ryanair_url": null
+    },
+    {
+      "id": 6,
+      "departure_airport": "TLL",
+      "arrival_airport": "NUE",
+      "price": 31.025274561171926,
+      "currency": "EUR",
+      "departure_date": "2026-04-28",
+      "checked_at": "2026-04-27 11:23:56",
+      "ryanair_url": null
+    },
+    {
+      "id": 1,
+      "departure_airport": "TLL",
+      "arrival_airport": "NUE",
+      "price": 45.5,
+      "currency": "EUR",
+      "departure_date": "2026-05-10",
+      "checked_at": "2026-04-27 11:21:18",
+      "ryanair_url": null
+    },
+    {
+      "id": 2,
+      "departure_airport": "TLL",
+      "arrival_airport": "NUE",
+      "price": 48.0,
+      "currency": "EUR",
+      "departure_date": "2026-05-10",
+      "checked_at": "2026-04-27 11:21:18",
+      "ryanair_url": null
+    },
+    {
+      "id": 3,
+      "departure_airport": "TLL",
+      "arrival_airport": "NUE",
+      "price": 42.3,
+      "currency": "EUR",
+      "departure_date": "2026-05-10",
+      "checked_at": "2026-04-27 11:21:18",
+      "ryanair_url": null
+    }
+  ]
+}

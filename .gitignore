@@ -1,0 +1,7 @@
+.env
+__pycache__/
+*.pyc
+prices.db
+bot.log
+.DS_Store
+venv/
