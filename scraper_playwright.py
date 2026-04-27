@@ -4,6 +4,7 @@ Playwright is lightweight, cloud-friendly, and comes with built-in browsers
 """
 
 import logging
+import re
 from datetime import datetime, timedelta
 from config import DEPARTURE_AIRPORT, ARRIVAL_AIRPORT
 
@@ -44,55 +45,82 @@ class PlaywrightRyanairScraper:
             with sync_playwright() as p:
                 # Launch browser (Playwright handles browser installation)
                 logger.info("📱 Starting browser...")
-                browser = p.chromium.launch(headless=True)
+                browser = p.chromium.launch(headless=True, args=["--disable-blink-features=AutomationControlled"])
+                
                 page = browser.new_page()
+                
+                # Mimic real browser
+                page.set_extra_http_headers({
+                    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
+                })
                 
                 # Go to Ryanair search page
                 url = f"https://www.ryanair.com/en/booking/home/{DEPARTURE_AIRPORT}/{ARRIVAL_AIRPORT}/{date_str}"
                 logger.info(f"📄 Loading: {url}")
-                page.goto(url, wait_until="networkidle", timeout=30000)
                 
-                # Wait for prices to load
-                logger.info("⏳ Waiting for prices to load...")
-                page.wait_for_selector("div[data-testid*='price']", timeout=15000)
-                
-                # Extract price data
-                flights = []
                 try:
-                    # Get all flight cards
-                    flight_cards = page.query_selector_all("div[data-testid*='flight']")
-                    
-                    for card in flight_cards:
-                        try:
-                            # Try to get price
-                            price_elem = card.query_selector("div[data-testid*='price'], span[data-testid*='price']")
-                            if price_elem:
-                                price_text = price_elem.text_content()
-                                # Extract number from text like "€39.99"
-                                price = float(''.join(c for c in price_text if c.isdigit() or c == '.'))
-                                
-                                departure = card.query_selector("[data-testid*='departure']")
-                                arrival = card.query_selector("[data-testid*='arrival']")
-                                
-                                flights.append({
-                                    "price": price,
-                                    "currency": "EUR",
-                                    "departure_time": departure.text_content() if departure else "N/A",
-                                    "arrival_time": arrival.text_content() if arrival else "N/A",
-                                    "duration": "N/A"
-                                })
-                        except Exception as e:
-                            logger.debug(f"Could not parse flight card: {e}")
-                            continue
+                    page.goto(url, wait_until="networkidle", timeout=60000)
+                except:
+                    # If first attempt times out, try again with domcontentloaded
+                    page.goto(url, wait_until="domcontentloaded", timeout=30000)
                 
-                except Exception as e:
-                    logger.warning(f"Could not find flight cards: {e}")
+                # Wait for page to settle
+                page.wait_for_load_state("networkidle", timeout=10000)
+                
+                # Extract all flight cards and prices
+                flights = []
+                logger.info("⏳ Extracting flight data...")
+                
+                # Method 1: Try to get prices from visible elements
+                try:
+                    page.evaluate("""
+                        // Wait for all images to load
+                        Promise.all(Array.from(document.images).map(img => 
+                            new Promise(resolve => {
+                                img.onload = img.onerror = resolve;
+                            })
+                        ));
+                    """)
+                except:
+                    pass
+                
+                # Get page content and extract prices
+                content = page.content()
+                
+                # Look for price patterns in HTML (€XX.XX)
+                price_pattern = r'€\s*(\d+[.,]\d{2})'
+                prices = re.findall(price_pattern, content)
+                
+                if prices:
+                    logger.info(f"Found price patterns: {prices[:5]}...")
+                    # Convert strings to floats
+                    for price_str in prices[:20]:  # Get top 20 prices
+                        try:
+                            price = float(price_str.replace(',', '.'))
+                            flights.append({
+                                "price": round(price, 2),
+                                "currency": "EUR",
+                                "departure_time": "N/A",
+                                "arrival_time": "N/A",
+                                "duration": "N/A"
+                            })
+                        except:
+                            pass
                 
                 browser.close()
                 
                 if flights:
                     flights = sorted(flights, key=lambda x: x['price'])
-                    logger.info(f"✅ Playwright: Found {len(flights)} flights")
+                    # Remove duplicates
+                    seen = set()
+                    unique_flights = []
+                    for f in flights:
+                        if f['price'] not in seen:
+                            unique_flights.append(f)
+                            seen.add(f['price'])
+                    
+                    flights = unique_flights[:15]  # Keep top 15 unique prices
+                    logger.info(f"✅ Playwright: Found {len(flights)} unique prices")
                     
                     return {
                         "departure": DEPARTURE_AIRPORT,
@@ -106,9 +134,11 @@ class PlaywrightRyanairScraper:
                         "source": "playwright"
                     }
                 else:
-                    logger.warning("❌ Playwright: No flights found")
+                    logger.warning("❌ Playwright: No prices found in content")
                     return None
                     
         except Exception as e:
             logger.error(f"❌ Playwright scraping failed: {e}")
+            import traceback
+            logger.debug(traceback.format_exc())
             return None
