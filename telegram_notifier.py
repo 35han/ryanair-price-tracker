@@ -145,6 +145,39 @@ class TelegramNotifier:
 """
         
         return self.send_message(message, parse_mode="HTML")
+    
+    def send_hourly_update(self, departure, arrival, price, average_price, date):
+        """
+        Send hourly price update via Telegram (regardless of price changes)
+        
+        Args:
+            departure: Departure airport code
+            arrival: Arrival airport code
+            price: Current lowest price found
+            average_price: Average price from history
+            date: Flight date
+        """
+        
+        # Calculate change from average
+        change = price - average_price
+        change_percent = (change / average_price * 100) if average_price else 0
+        
+        trend = "📉" if change < 0 else "📈" if change > 0 else "→"
+        
+        message = f"""<b>⏰ Hourly Price Update</b>
+
+<b>Route:</b> {departure} → {arrival}
+<b>Date:</b> {date}
+
+<b>Current Price:</b> <code>€{price:.2f}</code>
+<b>Average:</b> €{average_price:.2f}
+
+<b>Trend:</b> {trend} {change:+.2f}€ ({change_percent:+.1f}%)
+
+<i>Check: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</i>
+"""
+        
+        return self.send_message(message, parse_mode="HTML")
 
 
 # Test function

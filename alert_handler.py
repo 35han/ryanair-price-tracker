@@ -5,7 +5,7 @@ This is the brain of the notification system
 
 import logging
 from datetime import datetime, timedelta
-from config import PRICE_THRESHOLD, DEPARTURE_AIRPORT, ARRIVAL_AIRPORT
+from config import EMAIL_PRICE_THRESHOLDS, TELEGRAM_HOURLY_UPDATE, DEPARTURE_AIRPORT, ARRIVAL_AIRPORT
 from database import get_lowest_price, insert_alert
 from email_notifier import EmailNotifier
 from telegram_notifier import TelegramNotifier
@@ -14,17 +14,20 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class AlertHandler:
-    """Checks prices and sends alerts if price drops below threshold"""
+    """Checks prices and sends alerts based on configured thresholds"""
     
     def __init__(self):
         self.email_notifier = EmailNotifier()
         self.telegram_notifier = TelegramNotifier()
-        self.price_threshold = PRICE_THRESHOLD
-        self.last_alert_price = None  # Avoid sending duplicate alerts
+        self.email_thresholds = EMAIL_PRICE_THRESHOLDS  # [40.0, 35.0, 30.0]
+        self.last_email_alerts = {}  # Track which thresholds we've already alerted for
+        self.telegram_hourly = TELEGRAM_HOURLY_UPDATE  # True
     
     def check_and_alert(self, current_price, departure_date=None):
         """
-        Check if price is below threshold and send alerts
+        Check prices and send alerts:
+        - EMAIL: Only when price crosses thresholds (€40, €35, €30)
+        - TELEGRAM: Every hour with current price
         
         Args:
             current_price: The current lowest price found
@@ -41,7 +44,7 @@ class AlertHandler:
         
         logger.info(f"\n🔔 Checking for alerts...")
         logger.info(f"   Current price: €{current_price:.2f}")
-        logger.info(f"   Threshold: €{self.price_threshold:.2f}")
+        logger.info(f"   Email thresholds: €{', €'.join(map(str, self.email_thresholds))}")
         
         # Get historical price data
         price_stats = get_lowest_price(7)  # Last 7 days
@@ -54,44 +57,50 @@ class AlertHandler:
         
         result = {
             "current_price": current_price,
-            "threshold": self.price_threshold,
-            "alert_sent": False,
-            "average_price": average,
-            "reason": None
+            "email_thresholds": self.email_thresholds,
+            "telegram_update": False,
+            "email_alerts_sent": [],
+            "average_price": average
         }
         
-        # Check if price is below threshold
-        if current_price < self.price_threshold:
-            # Avoid duplicate alerts for same price
-            if self.last_alert_price and abs(self.last_alert_price - current_price) < 1.0:
-                logger.info(f"⚠️ Alert already sent for this price")
-                result["reason"] = "duplicate_price"
-                return result
+        # ============ EMAIL ALERTS (Price threshold based) ============
+        email_alerts_sent = []
+        
+        for threshold in sorted(self.email_thresholds, reverse=True):
+            threshold_key = f"threshold_{threshold}"
             
-            logger.info(f"✅ PRICE BELOW THRESHOLD! Sending alerts...")
+            # Check if price is below this threshold AND we haven't already alerted
+            if current_price < threshold and threshold_key not in self.last_email_alerts:
+                logger.info(f"✅ PRICE BELOW €{threshold}! Sending email alert...")
+                
+                if self.email_notifier.validate_credentials():
+                    email_sent = self.email_notifier.send_price_alert(
+                        departure=DEPARTURE_AIRPORT,
+                        arrival=ARRIVAL_AIRPORT,
+                        price=current_price,
+                        average_price=average,
+                        date=departure_date,
+                        threshold=threshold
+                    )
+                    if email_sent:
+                        email_alerts_sent.append(threshold)
+                        self.last_email_alerts[threshold_key] = True
+                        logger.info(f"✅ Email sent for threshold €{threshold}")
+                        try:
+                            insert_alert(current_price, f"email (threshold €{threshold})")
+                        except Exception as e:
+                            logger.error(f"Error recording alert: {e}")
+                else:
+                    logger.warning("⚠️ Email not configured, skipping email alert")
+        
+        result["email_alerts_sent"] = email_alerts_sent
+        
+        # ============ TELEGRAM UPDATES (Hourly regardless of price) ============
+        if self.telegram_hourly:
+            logger.info(f"📱 Sending hourly Telegram update...")
             
-            # Try to send alerts
-            alert_sent = False
-            sent_via = []
-            
-            # Send email
-            if self.email_notifier.validate_credentials():
-                email_sent = self.email_notifier.send_price_alert(
-                    departure=DEPARTURE_AIRPORT,
-                    arrival=ARRIVAL_AIRPORT,
-                    price=current_price,
-                    average_price=average,
-                    date=departure_date
-                )
-                if email_sent:
-                    sent_via.append("email")
-                    alert_sent = True
-            else:
-                logger.warning("⚠️ Email not configured, skipping email alert")
-            
-            # Send Telegram
             if self.telegram_notifier.validate_credentials():
-                telegram_sent = self.telegram_notifier.send_price_alert(
+                telegram_sent = self.telegram_notifier.send_hourly_update(
                     departure=DEPARTURE_AIRPORT,
                     arrival=ARRIVAL_AIRPORT,
                     price=current_price,
@@ -99,28 +108,12 @@ class AlertHandler:
                     date=departure_date
                 )
                 if telegram_sent:
-                    sent_via.append("telegram")
-                    alert_sent = True
+                    result["telegram_update"] = True
+                    logger.info(f"✅ Telegram hourly update sent")
+                else:
+                    logger.warning("⚠️ Failed to send Telegram update")
             else:
-                logger.warning("⚠️ Telegram not configured, skipping Telegram alert")
-            
-            if alert_sent:
-                # Record the alert in database
-                try:
-                    insert_alert(current_price, " + ".join(sent_via))
-                    self.last_alert_price = current_price
-                    result["alert_sent"] = True
-                    result["sent_via"] = sent_via
-                    result["reason"] = "price_below_threshold"
-                    logger.info(f"✅ Alerts sent via: {', '.join(sent_via)}")
-                except Exception as e:
-                    logger.error(f"Error recording alert: {e}")
-            else:
-                logger.error("❌ No notification methods configured")
-                result["reason"] = "no_notifiers_configured"
-        else:
-            logger.info(f"ℹ️ Price is above threshold (€{self.price_threshold:.2f})")
-            result["reason"] = "price_above_threshold"
+                logger.warning("⚠️ Telegram not configured")
         
         return result
     

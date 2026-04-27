@@ -8,7 +8,7 @@ import signal
 import sys
 from datetime import datetime
 from scheduler import start_bot, stop_bot, get_scheduler
-from config import DEPARTURE_AIRPORT, ARRIVAL_AIRPORT, PRICE_THRESHOLD, CHECK_INTERVAL_HOURS
+from config import DEPARTURE_AIRPORT, ARRIVAL_AIRPORT, EMAIL_PRICE_THRESHOLDS, CHECK_INTERVAL_HOURS
 
 # Configure logging
 logging.basicConfig(
@@ -31,9 +31,10 @@ def show_banner():
     ╚═══════════════════════════════════════════════════════════╝
     
     📍 Route: {DEPARTURE_AIRPORT} → {ARRIVAL_AIRPORT}
-    💰 Price Alert Threshold: €{PRICE_THRESHOLD}
+    💰 Email thresholds: €{', €'.join(map(str, EMAIL_PRICE_THRESHOLDS))}
+    📱 Telegram: Hourly updates
     ⏰ Check Interval: Every {CHECK_INTERVAL_HOURS} hour(s)
-    📧 Notifications: Email + Telegram
+    📧 Notifications: Email (threshold) + Telegram (hourly)
     🗄️  Database: SQLite (prices.db)
     
     ⏱️  Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}

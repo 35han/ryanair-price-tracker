@@ -7,7 +7,7 @@ import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from datetime import datetime, timedelta
-from config import CHECK_INTERVAL_HOURS, DEPARTURE_AIRPORT, ARRIVAL_AIRPORT, PRICE_THRESHOLD
+from config import CHECK_INTERVAL_HOURS, DEPARTURE_AIRPORT, ARRIVAL_AIRPORT, EMAIL_PRICE_THRESHOLDS
 from flight_scraper import FlightPriceScraper
 from alert_handler import AlertHandler
 from database import get_lowest_price, insert_price_check
@@ -40,7 +40,7 @@ class BotScheduler:
             
             logger.info(f"\n📍 Checking: {DEPARTURE_AIRPORT} → {ARRIVAL_AIRPORT}")
             logger.info(f"📅 Date: {departure_date.strftime('%Y-%m-%d')}")
-            logger.info(f"💰 Threshold: €{PRICE_THRESHOLD}")
+            logger.info(f"💰 Email thresholds: €{', €'.join(map(str, EMAIL_PRICE_THRESHOLDS))}")
             
             # Step 1: Scrape prices
             logger.info("\n1️⃣  Scraping prices...")
@@ -180,7 +180,7 @@ if __name__ == "__main__":
     logger.info(f"\nConfiguration:")
     logger.info(f"  Route: {DEPARTURE_AIRPORT} → {ARRIVAL_AIRPORT}")
     logger.info(f"  Check interval: {CHECK_INTERVAL_HOURS} hour(s)")
-    logger.info(f"  Price threshold: €{PRICE_THRESHOLD}")
+    logger.info(f"  Email thresholds: €{', €'.join(map(str, EMAIL_PRICE_THRESHOLDS))}")
     
     # Run one test job immediately
     logger.info("\n🧪 Running one-time test job...\n")

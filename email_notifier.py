@@ -89,7 +89,7 @@ class EmailNotifier:
             logger.error(f"❌ Failed to send email: {e}")
             return False
     
-    def send_price_alert(self, departure, arrival, price, average_price, date, url=None):
+    def send_price_alert(self, departure, arrival, price, average_price, date, threshold=None, url=None):
         """
         Send a price alert email
         
@@ -99,10 +99,12 @@ class EmailNotifier:
             price: Current price found
             average_price: Average price from history
             date: Flight date
+            threshold: Price threshold that was crossed (e.g., 40, 35, 30)
             url: Link to Ryanair booking page
         """
         
-        subject = f"🎉 Great Price Found! {departure} → {arrival} for €{price:.2f}"
+        threshold_text = f" - Below €{threshold}" if threshold else ""
+        subject = f"🎉 Price Alert: {departure} → {arrival} at €{price:.2f}{threshold_text}"
         
         # Calculate price difference
         savings = ((average_price - price) / average_price * 100) if average_price else 0
@@ -111,13 +113,14 @@ class EmailNotifier:
         html_body = f"""
         <html>
             <body style="font-family: Arial, sans-serif; color: #333;">
-                <h2 style="color: #2ecc71;">✈️ Price Alert: Great Deal Found!</h2>
+                <h2 style="color: #2ecc71;">✈️ Price Alert: Price Crossed Threshold!</h2>
                 
                 <div style="background-color: #f0f0f0; padding: 20px; border-radius: 5px; margin: 20px 0;">
                     <h3>Flight Details:</h3>
                     <p><strong>Route:</strong> {departure} → {arrival}</p>
                     <p><strong>Date:</strong> {date}</p>
                     <p><strong>Current Price:</strong> <span style="font-size: 24px; color: #2ecc71;">€{price:.2f}</span></p>
+                    {f'<p><strong>Threshold Hit:</strong> <span style="color: #e67e22;">Below €{threshold}</span></p>' if threshold else ''}
                     <p><strong>Average Price:</strong> €{average_price:.2f}</p>
                     {f'<p><strong>Savings:</strong> <span style="color: #e74c3c;">-€{average_price - price:.2f} ({savings:.1f}%)</span></p>' if savings > 0 else ''}
                 </div>
@@ -149,12 +152,13 @@ class EmailNotifier:
         """
         
         text_body = f"""
-✈️ PRICE ALERT: Great Deal Found!
+✈️ PRICE ALERT: Price Crossed Threshold!
 
 Flight Details:
 Route: {departure} → {arrival}
 Date: {date}
 Current Price: €{price:.2f}
+{f'Threshold Hit: Below €{threshold}' if threshold else ''}
 Average Price: €{average_price:.2f}
 
 Savings: €{average_price - price:.2f} ({savings:.1f}%)

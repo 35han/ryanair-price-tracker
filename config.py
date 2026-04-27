@@ -15,7 +15,12 @@ ARRIVAL_AIRPORT = "BER"    # Berlin, Germany
 SEARCH_DATES = ["2026-06-09", "2026-06-10", "2026-06-12"]  # Specific dates to track
 
 # ========== PRICE ALERT SETTINGS ==========
-PRICE_THRESHOLD = float(os.getenv("PRICE_THRESHOLD", 24.99))  # Alert when price < €24.99
+# Email alerts at specific price milestones
+EMAIL_PRICE_THRESHOLDS = [40.0, 35.0, 30.0]  # Send email when price drops below these values
+
+# Telegram sends hourly updates regardless of price
+TELEGRAM_HOURLY_UPDATE = True  # Always send hourly update
+
 CHECK_INTERVAL_HOURS = 1  # Check every 1 hour
 
 # ========== EMAIL SETTINGS ==========
