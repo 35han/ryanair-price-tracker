@@ -105,7 +105,7 @@ class BotScheduler:
         
         logger.info(f"✅ Job scheduled: Every {CHECK_INTERVAL_HOURS} hour(s)")
         logger.info(f"📋 Job ID: {self.job_id.id}")
-        logger.info(f"⏰ Next run: {self.job_id.next_run_time}")
+        logger.info(f"⏰ Scheduler will run the job every {CHECK_INTERVAL_HOURS} hour(s)")
         
         # Start the scheduler
         self.scheduler.start()
@@ -142,7 +142,6 @@ class BotScheduler:
             status["jobs"].append({
                 "id": job.id,
                 "name": job.name,
-                "next_run": job.next_run_time,
                 "trigger": str(job.trigger)
             })
         
