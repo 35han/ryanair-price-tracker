@@ -69,10 +69,15 @@ class BotScheduler:
                 departure_date
             )
             
-            if alert_result["alert_sent"]:
-                logger.info(f"   ✅ Alert sent via: {', '.join(alert_result.get('sent_via', []))}")
+            if alert_result.get("telegram_update") or alert_result.get("email_alerts_sent"):
+                sent_methods = []
+                if alert_result.get("telegram_update"):
+                    sent_methods.append("Telegram")
+                if alert_result.get("email_alerts_sent"):
+                    sent_methods.append(f"Email (€{alert_result['email_alerts_sent']})")
+                logger.info(f"   ✅ Notifications sent via: {', '.join(sent_methods)}")
             else:
-                logger.info(f"   ℹ️  No alert: {alert_result.get('reason', 'price above threshold')}")
+                logger.info(f"   ℹ️  No alerts sent")
             
             # Step 4: Log success
             logger.info("\n✅ Job completed successfully")
