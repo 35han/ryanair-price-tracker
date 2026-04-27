@@ -60,7 +60,6 @@ def show_status():
         print(f"   Jobs scheduled: {status['jobs_count']}")
         for job in status["jobs"]:
             print(f"   └─ {job['name']}")
-            print(f"      Next run: {job['next_run']}")
     else:
         print("\n❌ Bot Status: NOT RUNNING")
 
