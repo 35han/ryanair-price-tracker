@@ -9,31 +9,52 @@ import sys
 import os
 from datetime import datetime
 
-# Force unbuffered output for Railway from the very start
+# FIRST: Force unbuffered output - MUST be before any logging
+sys.stdout.reconfigure(line_buffering=True) if hasattr(sys.stdout, 'reconfigure') else None
 os.environ['PYTHONUNBUFFERED'] = '1'
 
-# CRITICAL: Configure ROOT logger FIRST before any imports
-# This ensures all child loggers use the same configuration
-root_logger = logging.getLogger()
-root_logger.setLevel(logging.DEBUG)
+# Print to stderr first in case stdout isn't available yet
+print("🚀 [STARTUP] Starting Ryanair Price Tracker Bot", file=sys.stderr, flush=True)
+print("🚀 [STARTUP] Configuring logging...", file=sys.stderr, flush=True)
 
-# Remove any existing handlers
-for handler in root_logger.handlers[:]:
-    root_logger.removeHandler(handler)
+try:
+    # CRITICAL: Configure ROOT logger FIRST before any imports
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)
 
-# Add single unbuffered console handler
-console_handler = logging.StreamHandler(sys.stdout)
-console_handler.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-console_handler.setFormatter(formatter)
-root_logger.addHandler(console_handler)
+    # Remove any existing handlers
+    for handler in root_logger.handlers[:]:
+        root_logger.removeHandler(handler)
 
-# Now import the rest
-from scheduler import start_bot, stop_bot, get_scheduler
-from config import DEPARTURE_AIRPORT, ARRIVAL_AIRPORT, EMAIL_PRICE_THRESHOLDS, CHECK_INTERVAL_HOURS
-from database import create_database
+    # Add unbuffered console handlers (both stdout and stderr for safety)
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    console_handler.setFormatter(formatter)
+    root_logger.addHandler(console_handler)
 
-logger = logging.getLogger(__name__)
+    # Also add stderr for critical messages
+    stderr_handler = logging.StreamHandler(sys.stderr)
+    stderr_handler.setLevel(logging.ERROR)
+    stderr_handler.setFormatter(formatter)
+    root_logger.addHandler(stderr_handler)
+
+    print("🚀 [STARTUP] Logging configured", file=sys.stderr, flush=True)
+    print("🚀 [STARTUP] Importing modules...", file=sys.stderr, flush=True)
+
+    # Now import the rest
+    from scheduler import start_bot, stop_bot, get_scheduler
+    from config import DEPARTURE_AIRPORT, ARRIVAL_AIRPORT, EMAIL_PRICE_THRESHOLDS, CHECK_INTERVAL_HOURS
+    from database import create_database
+
+    print("🚀 [STARTUP] Imports successful", file=sys.stderr, flush=True)
+    logger = logging.getLogger(__name__)
+
+except Exception as e:
+    print(f"🔥 [STARTUP ERROR] Failed during initialization: {e}", file=sys.stderr, flush=True)
+    import traceback
+    traceback.print_exc(file=sys.stderr)
+    sys.exit(1)
 
 def main():
     """Main function - entry point"""

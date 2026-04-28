@@ -2,26 +2,25 @@ FROM python:3.11.9-slim
 
 WORKDIR /app
 
-# Install system dependencies needed for Playwright and browser automation
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     wget \
     curl \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
+# Copy and install requirements
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright browsers (chromium, firefox, webkit)
-# This happens before the bot starts
+# Install Playwright browsers during build
 RUN python -m playwright install chromium
 
-# Copy app code
+# Copy app
 COPY . .
 
-# Set environment to production
+# Force unbuffered Python output
 ENV PYTHONUNBUFFERED=1
 
-# Run the bot
-CMD ["python", "main.py"]
+# Run with explicit unbuffered flag
+CMD ["python", "-u", "main.py"]
