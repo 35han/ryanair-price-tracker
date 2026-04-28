@@ -70,43 +70,45 @@ class PlaywrightRyanairScraper:
                 flights = []
                 logger.info("⏳ Extracting flight data...")
                 
-                # Method 1: Try to get prices from visible elements
                 try:
-                    page.evaluate("""
-                        // Wait for all images to load
-                        Promise.all(Array.from(document.images).map(img => 
-                            new Promise(resolve => {
-                                img.onload = img.onerror = resolve;
-                            })
-                        ));
-                    """)
-                except:
-                    pass
+                    # Skip image waiting - too slow
+                    # Get page content quickly
+                    logger.info("📄 Getting page HTML...")
+                    content = page.content()
+                    logger.info(f"📄 Got {len(content)} bytes of HTML")
+                    
+                    # Look for price patterns in HTML (€XX.XX)
+                    logger.info("🔍 Searching for price patterns...")
+                    price_pattern = r'€\s*(\d+[.,]\d{2})'
+                    prices = re.findall(price_pattern, content)
+                    
+                    logger.info(f"🎯 Found {len(prices)} price patterns")
+                    
+                    if prices:
+                        logger.info(f"📊 Sample prices: {prices[:5]}")
+                        # Convert strings to floats
+                        for price_str in prices[:20]:  # Get top 20 prices
+                            try:
+                                price = float(price_str.replace(',', '.'))
+                                flights.append({
+                                    "price": round(price, 2),
+                                    "currency": "EUR",
+                                    "departure_time": "N/A",
+                                    "arrival_time": "N/A",
+                                    "duration": "N/A"
+                                })
+                            except:
+                                pass
+                    
+                except Exception as e:
+                    logger.error(f"❌ Error extracting data: {e}", exc_info=True)
                 
-                # Get page content and extract prices
-                content = page.content()
-                
-                # Look for price patterns in HTML (€XX.XX)
-                price_pattern = r'€\s*(\d+[.,]\d{2})'
-                prices = re.findall(price_pattern, content)
-                
-                if prices:
-                    logger.info(f"Found price patterns: {prices[:5]}...")
-                    # Convert strings to floats
-                    for price_str in prices[:20]:  # Get top 20 prices
-                        try:
-                            price = float(price_str.replace(',', '.'))
-                            flights.append({
-                                "price": round(price, 2),
-                                "currency": "EUR",
-                                "departure_time": "N/A",
-                                "arrival_time": "N/A",
-                                "duration": "N/A"
-                            })
-                        except:
-                            pass
-                
-                browser.close()
+                finally:
+                    try:
+                        browser.close()
+                        logger.info("✅ Browser closed")
+                    except:
+                        pass
                 
                 if flights:
                     flights = sorted(flights, key=lambda x: x['price'])
