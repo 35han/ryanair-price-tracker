@@ -7,8 +7,6 @@ import logging
 import re
 from datetime import datetime, timedelta
 from config import DEPARTURE_AIRPORT, ARRIVAL_AIRPORT
-
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 try:

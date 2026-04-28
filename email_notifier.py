@@ -9,8 +9,6 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 from config import GMAIL_EMAIL, GMAIL_PASSWORD, EMAIL_RECIPIENT
-
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class EmailNotifier:

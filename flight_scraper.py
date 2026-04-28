@@ -8,7 +8,6 @@ from datetime import datetime, timedelta
 from config import DEPARTURE_AIRPORT, ARRIVAL_AIRPORT
 from database import insert_price, insert_price_check
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Try importing scrapers

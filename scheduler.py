@@ -11,7 +11,6 @@ from flight_scraper import FlightPriceScraper
 from alert_handler import AlertHandler
 from database import insert_price_check
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class SyncBotScheduler:
