@@ -39,12 +39,7 @@ except:
     selenium_scraper_available = False
     logger.warning("Selenium scraper not available")
 
-try:
-    from scraper_mock import MockRyanairScraper
-    mock_scraper_available = True
-except:
-    mock_scraper_available = False
-    logger.warning("Mock scraper not available")
+# Mock scraper removed - only real prices from Ryanair
 
 
 class FlightPriceScraper:
@@ -56,7 +51,6 @@ class FlightPriceScraper:
         self.alt_scraper = None
         self.playwright_scraper = None
         self.selenium_scraper = None
-        self.mock_scraper = None
         
         if api_scraper_available:
             self.api_scraper = RyanairAPIScraperV2()
@@ -66,8 +60,6 @@ class FlightPriceScraper:
             self.playwright_scraper = PlaywrightRyanairScraper()
         if selenium_scraper_available:
             self.selenium_scraper = RyanairScraper()
-        if mock_scraper_available:
-            self.mock_scraper = MockRyanairScraper()
     
     def scrape(self, departure_date=None):
         """
@@ -137,16 +129,11 @@ class FlightPriceScraper:
             except Exception as e:
                 logger.warning(f"⚠️ Selenium method failed: {e}")
         
-        # FINAL FALLBACK: Use mock data (for testing/development)
-        if self.mock_scraper:
-            logger.info("\n🎯 Using mock data for testing...")
-            try:
-                result = self.mock_scraper.scrape_price(departure_date)
-                if result:
-                    logger.info("✅ Mock data loaded (THIS IS TEST DATA)")
-                    return result
-            except Exception as e:
-                logger.warning(f"⚠️ Mock scraper failed: {e}")
+        # NO MORE FALLBACKS - Only real prices
+        logger.error(f"❌ ALL SCRAPERS FAILED - No real prices available for {date_str}")
+        logger.error("   Try: Check if Ryanair website is accessible")
+        logger.error("   Try: Check Playwright browser installation")
+        return None
         
         logger.error("❌ All scraping methods failed!")
         return None
