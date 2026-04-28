@@ -57,13 +57,14 @@ class PlaywrightRyanairScraper:
                 logger.info(f"📄 Loading: {url}")
                 
                 try:
-                    page.goto(url, wait_until="networkidle", timeout=60000)
-                except:
-                    # If first attempt times out, try again with domcontentloaded
+                    # Don't wait for networkidle - Ryanair is a SPA that never truly idles
                     page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                except Exception as e:
+                    logger.warning(f"⚠️ Page load warning: {e}")
                 
-                # Wait for page to settle
-                page.wait_for_load_state("networkidle", timeout=10000)
+                # Give page a moment to render
+                import time
+                time.sleep(2)
                 
                 # Extract all flight cards and prices
                 flights = []
