@@ -1,59 +1,75 @@
+#!/usr/bin/env python3
 """
 Main entry point for Ryanair Price Tracker Bot
-Run this file to start the bot: python main.py
 """
 
-import logging
-import signal
 import sys
 import os
-from datetime import datetime
 
-# FIRST: Force unbuffered output - MUST be before any logging
-sys.stdout.reconfigure(line_buffering=True) if hasattr(sys.stdout, 'reconfigure') else None
+# MUST be first - force unbuffered output
 os.environ['PYTHONUNBUFFERED'] = '1'
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(line_buffering=True)
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(line_buffering=True)
 
-# Print to stderr first in case stdout isn't available yet
-print("🚀 [STARTUP] Starting Ryanair Price Tracker Bot", file=sys.stderr, flush=True)
-print("🚀 [STARTUP] Configuring logging...", file=sys.stderr, flush=True)
+# Print immediately to both stdout and stderr
+print("\n" + "="*70, flush=True)
+print("🚀 BOT STARTUP BEGINNING", flush=True)
+print("="*70, flush=True)
+
+print("📋 Environment:", flush=True)
+print(f"   Python: {sys.version}", flush=True)
+print(f"   CWD: {os.getcwd()}", flush=True)
+print(f"   PID: {os.getpid()}", flush=True)
 
 try:
-    # CRITICAL: Configure ROOT logger FIRST before any imports
+    print("\n🔧 Configuring logging...", flush=True)
+    import logging
+    
+    # Configure root logger
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.DEBUG)
-
-    # Remove any existing handlers
+    
+    # Clear existing handlers
     for handler in root_logger.handlers[:]:
         root_logger.removeHandler(handler)
-
-    # Add unbuffered console handlers (both stdout and stderr for safety)
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    console_handler.setFormatter(formatter)
-    root_logger.addHandler(console_handler)
-
-    # Also add stderr for critical messages
-    stderr_handler = logging.StreamHandler(sys.stderr)
-    stderr_handler.setLevel(logging.ERROR)
-    stderr_handler.setFormatter(formatter)
-    root_logger.addHandler(stderr_handler)
-
-    print("🚀 [STARTUP] Logging configured", file=sys.stderr, flush=True)
-    print("🚀 [STARTUP] Importing modules...", file=sys.stderr, flush=True)
-
-    # Now import the rest
-    from scheduler import start_bot, stop_bot, get_scheduler
-    from config import DEPARTURE_AIRPORT, ARRIVAL_AIRPORT, EMAIL_PRICE_THRESHOLDS, CHECK_INTERVAL_HOURS
-    from database import create_database
-
-    print("🚀 [STARTUP] Imports successful", file=sys.stderr, flush=True)
+    
+    # Add unbuffered handler
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    root_logger.addHandler(handler)
+    
     logger = logging.getLogger(__name__)
-
+    logger.info("✅ Logging configured")
+    
+    # Now try imports
+    logger.info("\n📦 Importing modules...")
+    
+    from config import DEPARTURE_AIRPORT, ARRIVAL_AIRPORT, SEARCH_DATES
+    logger.info(f"✅ Config: {DEPARTURE_AIRPORT} → {ARRIVAL_AIRPORT}, Dates: {SEARCH_DATES}")
+    
+    from database import create_database
+    logger.info("✅ Database module loaded")
+    
+    from scheduler import start_bot, stop_bot
+    logger.info("✅ Scheduler module loaded")
+    
+    # Start bot
+    logger.info("\n✈️ STARTING BOT")
+    logger.info("="*70)
+    
+    create_database()
+    logger.info("✅ Database initialized")
+    
+    start_bot()
+    
 except Exception as e:
-    print(f"🔥 [STARTUP ERROR] Failed during initialization: {e}", file=sys.stderr, flush=True)
+    print(f"\n❌ STARTUP ERROR: {e}", flush=True)
+    print(f"   Type: {type(e).__name__}", flush=True)
     import traceback
-    traceback.print_exc(file=sys.stderr)
+    traceback.print_exc()
     sys.exit(1)
 
 def main():
